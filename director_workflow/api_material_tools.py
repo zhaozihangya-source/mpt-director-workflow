@@ -286,9 +286,16 @@ def search_api_candidates_for_shot(
         passing = [candidate for candidate in candidates if not candidate_issues(candidate)]
         if passing:
             break
+    # 去重键必须是视频本身（provider + asset id），不能用 download_url：
+    # 同一视频的不同分辨率变体 download_url 不同，会让候选池虚胖。
     deduped: dict[str, dict[str, Any]] = {}
     for candidate in candidates:
-        key = str(candidate.get("download_url") or candidate.get("source_url") or candidate.get("provider_asset_id"))
+        asset_id = str(candidate.get("provider_asset_id") or "")
+        key = (
+            f"{candidate.get('provider')}:{asset_id}"
+            if asset_id
+            else str(candidate.get("download_url") or candidate.get("source_url"))
+        )
         prior = deduped.get(key)
         if prior is None or score_api_candidate(candidate) > score_api_candidate(prior):
             deduped[key] = candidate
@@ -398,6 +405,7 @@ def select_api_assets(
     by_shot = {str(binding.get("shot_id")): binding for binding in bindings if binding.get("shot_id")}
     issues: list[dict[str, Any]] = []
 
+    used_asset_keys: set[str] = set()
     for shot in candidates_payload.get("shots", []) or []:
         shot_id = str(shot.get("shot_id") or "")
         passing = [
@@ -410,7 +418,23 @@ def select_api_assets(
         if not passing:
             issues.append({"shot_id": shot_id, "field": "api_asset_candidates", "issue": "no passing API video candidate"})
             continue
-        selected = passing[0]
+        # 跨镜头去重：优先选未被其他镜头使用的素材，避免成片画面重复
+        def asset_key(candidate: dict[str, Any]) -> str:
+            return str(candidate.get("provider_asset_id") or candidate.get("local_path") or "")
+
+        fresh = [candidate for candidate in passing if asset_key(candidate) not in used_asset_keys]
+        if fresh:
+            selected = fresh[0]
+        else:
+            selected = passing[0]
+            issues.append(
+                {
+                    "shot_id": shot_id,
+                    "field": "asset_reuse",
+                    "issue": "all passing candidates already used by other shots; reusing footage",
+                }
+            )
+        used_asset_keys.add(asset_key(selected))
         binding = by_shot.get(shot_id, {"shot_id": shot_id})
         binding.update(
             {

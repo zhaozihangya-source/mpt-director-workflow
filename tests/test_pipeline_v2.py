@@ -248,7 +248,7 @@ class PreRenderCheckTest(unittest.TestCase):
             check = pipe.pre_render_check()
             self.assertTrue(check["valid"], check["issues"])
 
-    def test_duplicate_terms_flagged(self) -> None:
+    def test_duplicate_terms_warn_but_pass(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             run_dir = make_run(tmp_path)
@@ -256,8 +256,24 @@ class PreRenderCheckTest(unittest.TestCase):
             write_shot_plan(run_dir, [stock_shot("s01", ["same term"]), stock_shot("s02", ["same term"])])
             pipe = PipelineV2(run_dir, config=fake_config(tmp_path))
             check = pipe.pre_render_check()
+            # 同词可选不同素材：只 warning，不阻断
+            self.assertTrue(check["valid"], check["issues"])
+            self.assertTrue(any("重复" in w for w in check["warnings"]))
+
+    def test_duplicate_bound_asset_blocks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            run_dir = make_run(tmp_path)
+            write_text(run_dir / "approved_script.md", REAL_SCRIPT)
+            write_shot_plan(run_dir, [stock_shot("s01"), stock_shot("s02")])
+            write_json(run_dir / "asset_bindings.json", {"bindings": [
+                {"shot_id": "s01", "provider_asset_id": "12345", "asset_path": "a.mp4"},
+                {"shot_id": "s02", "provider_asset_id": "12345", "asset_path": "b.mp4"},
+            ]})
+            pipe = PipelineV2(run_dir, config=fake_config(tmp_path))
+            check = pipe.pre_render_check()
             self.assertFalse(check["valid"])
-            self.assertTrue(any("重复" in issue for issue in check["issues"]))
+            self.assertTrue(any("同一素材" in issue for issue in check["issues"]))
 
     def test_empty_script_flagged(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

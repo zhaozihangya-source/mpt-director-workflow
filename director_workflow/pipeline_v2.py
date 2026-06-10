@@ -158,37 +158,52 @@ class PipelineV2:
 
     def stage_materials(self) -> StageResult:
         codex_model = str(self.options.get("codex_model") or "")
+        materials_mode = str(self.options.get("materials_mode") or "codex")
 
-        strategy_args = ["--mode", "codex", "--timeout", "750"]
-        if codex_model:
-            strategy_args += ["--model", codex_model]
-        code, _, _ = self._run_tool("plan_material_strategy.py", *strategy_args, timeout=900)
-        if code != 0:
-            self.logs.append("codex strategy failed; falling back to rules mode")
+        if materials_mode == "stock_only":
+            # 全镜头 Pexels 真实视频：无生图断点，适合无 Codex 生图能力的全自动场景
             code, _, _ = self._run_tool(
-                "plan_material_strategy.py", "--mode", "rules", timeout=300
+                "plan_material_strategy.py", "--mode", "stock-only", timeout=300
             )
             if code != 0:
-                return StageResult("materials", "failed", "素材策略生成失败（codex 与 rules 均失败）")
+                return StageResult("materials", "failed", "stock-only 素材策略生成失败")
+        else:
+            strategy_args = ["--mode", "codex", "--timeout", "750"]
+            if codex_model:
+                strategy_args += ["--model", codex_model]
+            code, _, _ = self._run_tool("plan_material_strategy.py", *strategy_args, timeout=900)
+            if code != 0:
+                self.logs.append("codex strategy failed; falling back to rules mode")
+                code, _, _ = self._run_tool(
+                    "plan_material_strategy.py", "--mode", "rules", timeout=300
+                )
+                if code != 0:
+                    return StageResult("materials", "failed", "素材策略生成失败（codex 与 rules 均失败）")
 
-        # Pexels 采集允许部分失败，缺口由降级处理
+        # Pexels 采集允许部分失败，缺口由降级处理。
+        # 候选池放大到每镜头 6 个，跨镜头素材去重才有得选。
         self._run_tool(
             "collect_api_materials.py",
             "--provider", "pexels", "--bind", "--approve-passing",
+            "--max-candidates-per-shot", "6",
             timeout=1800,
         )
 
-        degraded = self.degrade_uncovered_shots()
-        shot_plan = read_json(self.run_dir / "shot_plan.json", {})
-        total_shots = len(shot_plan.get("shots", []) or [])
-        if total_shots and len(degraded) / total_shots > MAX_DEGRADE_RATIO:
-            return StageResult(
-                "materials",
-                "failed",
-                f"降级镜头过多（{len(degraded)}/{total_shots}），素材采集基本失效",
-            )
-        if degraded:
-            self.logs.append(f"degraded to codex_image: {','.join(degraded)}")
+        if materials_mode == "stock_only":
+            # 没有生图能力，降级无意义；素材缺口留给 binding report 直接暴露
+            degraded = []
+        else:
+            degraded = self.degrade_uncovered_shots()
+            shot_plan = read_json(self.run_dir / "shot_plan.json", {})
+            total_shots = len(shot_plan.get("shots", []) or [])
+            if total_shots and len(degraded) / total_shots > MAX_DEGRADE_RATIO:
+                return StageResult(
+                    "materials",
+                    "failed",
+                    f"降级镜头过多（{len(degraded)}/{total_shots}），素材采集基本失效",
+                )
+            if degraded:
+                self.logs.append(f"degraded to codex_image: {','.join(degraded)}")
 
         self.apply_sentence_durations()
 
@@ -303,6 +318,9 @@ class PipelineV2:
         if count_cjk_chars(script_text) < 60:
             issues.append("approved_script.md 缺失、为空或仍是占位文本")
 
+        # 搜索词重复只是风险信号（同词仍可选出不同素材），降为 warning；
+        # 绑定层素材跨镜头重复才是成片画面重复的硬伤，阻断。
+        warnings: list[str] = []
         shots = shot_plan.get("shots", []) or []
         seen_terms: set[str] = set()
         for shot in shots:
@@ -313,9 +331,24 @@ class PipelineV2:
                 terms = tuple(str(t).strip().lower() for t in shot.get("search_terms") or [])
                 key = "|".join(terms)
                 if key and key in seen_terms:
-                    issues.append(f"{sid}: search_terms 与其他镜头完全重复，素材会重复")
+                    warnings.append(f"{sid}: search_terms 与其他镜头完全重复")
                 seen_terms.add(key)
-        report = {"valid": not issues, "issues": issues}
+
+        bindings = read_json(self.run_dir / "asset_bindings.json", {})
+        seen_assets: dict[str, str] = {}
+        for binding in bindings.get("bindings", []) or []:
+            if not isinstance(binding, dict):
+                continue
+            sid = str(binding.get("shot_id") or "?")
+            asset = str(binding.get("provider_asset_id") or binding.get("asset_path") or "").strip()
+            if not asset:
+                continue
+            if asset in seen_assets:
+                issues.append(f"{sid}: 与 {seen_assets[asset]} 绑定了同一素材，成片画面会重复")
+            else:
+                seen_assets[asset] = sid
+
+        report = {"valid": not issues, "issues": issues, "warnings": warnings}
         write_json(self.run_dir / "pre_render_check.json", report)
         return report
 

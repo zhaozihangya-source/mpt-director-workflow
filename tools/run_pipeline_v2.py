@@ -21,6 +21,12 @@ def main() -> None:
     parser.add_argument("--provider", default="auto", choices=["auto", "api", "cli"])
     parser.add_argument("--count", type=int, default=5)
     parser.add_argument("--codex-model", default="")
+    parser.add_argument(
+        "--materials-mode",
+        default="codex",
+        choices=["codex", "stock_only"],
+        help="codex: 导演决定 stock/生图混排（有生图断点）; stock_only: 全 Pexels 真实视频（全自动无断点）",
+    )
     parser.add_argument("--timeout-seconds", type=int, default=1200, help="MPT render wait")
     parser.add_argument("--show-logs", action="store_true")
     args = parser.parse_args()
@@ -31,6 +37,7 @@ def main() -> None:
             "provider": args.provider,
             "count": args.count,
             "codex_model": args.codex_model,
+            "materials_mode": args.materials_mode,
             "timeout_seconds": args.timeout_seconds,
         },
     )
