@@ -1,0 +1,27 @@
+{
+  "status": "draft",
+  "shots": [
+    {
+      "id": "s01",
+      "narration": "以前做一条视频，至少要脚本、配音、剪辑三个人。",
+      "duration_hint_seconds": 4,
+      "material_type": "stock_video",
+      "visual_intent": "创作者面对复杂剪辑时间线，桌面上有多任务工作流",
+      "search_terms": [
+        "video editing timeline",
+        "creator laptop editing",
+        "content creator workspace"
+      ],
+      "codex_image_prompt": ""
+    },
+    {
+      "id": "s02",
+      "narration": "现在，一个人也能把流程跑完。",
+      "duration_hint_seconds": 4,
+      "material_type": "codex_image",
+      "visual_intent": "一个普通创作者背后出现脚本、配音、剪辑、发布四条AI流程线",
+      "search_terms": [],
+      "codex_image_prompt": "Vertical 9:16 cinematic realistic image, a solo content creator at a laptop, behind them four subtle glowing workflow lanes representing script, voiceover, editing, publishing, no text, no logo, bottom 25 percent clean for subtitles"
+    }
+  ]
+}

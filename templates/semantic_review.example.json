@@ -1,0 +1,49 @@
+{
+  "status": "complete",
+  "overall_score": 72,
+  "decision": "needs_revision",
+  "summary": "稿件方向可用，但分镜和素材搜索词仍偏泛，需要补具体画面动作。",
+  "script_review": {
+    "score": 78,
+    "findings": [
+      "开头有钩子，但第三句偏抽象"
+    ],
+    "revision_notes": [
+      "把抽象判断改成可视化动作"
+    ]
+  },
+  "shot_review": {
+    "score": 68,
+    "findings": [
+      "部分镜头 visual_intent 为空"
+    ],
+    "revision_notes": [
+      "每句旁白补一个具体可搜索画面"
+    ]
+  },
+  "asset_review": {
+    "score": 70,
+    "findings": [
+      "素材清单只说明技术质量，缺少镜头用途绑定"
+    ],
+    "revision_notes": [
+      "给每个素材绑定 shot_id"
+    ]
+  },
+  "render_review": {
+    "score": 70,
+    "findings": [
+      "技术 QA 有时长偏差"
+    ],
+    "revision_notes": [
+      "缩短或拉长脚本后重新测 TTS"
+    ]
+  },
+  "required_changes": [
+    "补全 shot_plan 中为空的 visual_intent",
+    "重写过长旁白句子"
+  ],
+  "optional_changes": [
+    "生成一张 Codex 开场图强化视觉钩子"
+  ]
+}

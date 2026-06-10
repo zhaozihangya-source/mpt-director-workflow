@@ -1,0 +1,25 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.Python
+.env
+.env.local
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime outputs should not be committed to the open-source package.
+director-runs/
+../director-runs/
+MoneyPrinterTurbo/storage/
+reports/contact_sheet*.jpg
+
+# Internal analysis reports with machine-local paths (kept local, not published).
+MPT_Current_Full_Logic_Report.md
+MPT_Director_Workflow_Report.md
+reports/*.md

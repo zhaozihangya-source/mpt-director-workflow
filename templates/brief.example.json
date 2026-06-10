@@ -1,0 +1,16 @@
+{
+  "topic": "AI视频如何让普通人一个人完成内容生产",
+  "platform": "douyin",
+  "aspect": "9:16",
+  "language": "zh-CN",
+  "target_duration_seconds": 45,
+  "audience": "想用AI做短视频的个人创作者",
+  "style": "商业科普，具体、有钩子、适合竖屏短视频",
+  "quality_goals": [
+    "前三秒有明确钩子",
+    "每句旁白都能对应具体画面",
+    "避免泛泛宣传和空话",
+    "字幕不超过两行",
+    "素材不黑屏、不重复、不明显跑题"
+  ]
+}

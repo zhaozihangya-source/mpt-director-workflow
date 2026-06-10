@@ -1,0 +1,20 @@
+{
+  "mpt_api_endpoint": "http://127.0.0.1:8080/api/v1/videos",
+  "runs_dir": "../director-runs",
+  "mpt_dir": "../MoneyPrinterTurbo",
+  "default_duration_seconds": 60,
+  "default_platform": "douyin",
+  "default_voice_name": "gemini:Zephyr-Female",
+  "default_video_source": "pexels",
+  "default_video_clip_duration": 3,
+  "codex_executable": "codex",
+  "deepseek_model": "deepseek-v4-flash",
+  "deepseek_base_url": "https://api.deepseek.com",
+  "social_upload_dir": "",
+  "quality_thresholds": {
+    "duration_error_ratio": 0.12,
+    "min_width": 1080,
+    "min_height": 1920,
+    "max_black_events": 0
+  }
+}
